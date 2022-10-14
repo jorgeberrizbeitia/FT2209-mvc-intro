@@ -2,8 +2,18 @@
 require('dotenv').config()
 
 
-// Connects to the database... if we had one :( 
-// TODO                                        
+// Connects to the database... if we had one :(
+const mongoose = require("mongoose");
+const MONGO_URI = "mongodb://localhost/studentsdb";
+// const MONGO_URI = "mongodb://";
+
+mongoose.connect(MONGO_URI)
+.then((response) => {
+  console.log("Conectados a la Base de Datos")
+})
+.catch((err) => {
+  console.log("Error conectando", err)
+})
 
 
 // Handles http requests (express is node js framework)
@@ -19,11 +29,20 @@ const hbs = require("hbs");
 app.use(express.static("public"))
 app.set('view engine', 'hbs');
 app.set('views', __dirname + '/views/' )
+// morgan
+const logger = require("morgan")
+app.use(logger("dev"))
+// server-favicon
+const favicon = require("serve-favicon")
+app.use( favicon(__dirname + "/public/images/favicon.ico") )
 
 
 // Local Variables 
-// TODO           
+// en app.locas crear una propiedad con cualquier nombre y valor
+// accesible en cualquier lugar de HBS
+app.locals.webName = "Estudiantes de Ironhack";
 
+const Student = require('./models/Student.model');
 
 // 👇 Start handling routes here
 app.get('/', (req, res) => {
@@ -38,9 +57,44 @@ app.get('/my-hobbies', (req, res) => {
   res.render("my-hobbies.hbs")
 })
 
+app.get("/users", (req, res, next) => {
+  // next indica, quiero que pases a la proxima ruta
+  // next() => sin argumento. directamente salta a la proxima ruta
+  // next(arg) => con 1 argumento. pasa al error handler de tipo 500.
+
+  // 1. buscamos a todos los estudiantes
+  Student.find()
+  .then((response) => {
+    console.log(response)
+    console.log(patata)
+
+    // 2. renderizamos una vista con la data
+    res.render("total-users.hbs", {
+      totalUsers: response
+    })
+  })
+  .catch((err) => {
+    // console.log(err)
+    // res.render("error.hbs")
+    next(err)
+  })
+})
+
 
 // To handle errors.
-// TODO            
+// 404 errors
+// app.get("*", (req, res) => {})
+app.use((req, res) => {
+  // esto es algo que se va a ejecutar siempre, si no consigue ruta anterior
+  res.status(404).render("not-found.hbs")
+})
+
+// 500 errors
+// el middleware es de tipo 500 por tener 4 argumentos
+app.use((err, req, res, next) => {
+  console.log(err)
+  res.status(500).render("error.hbs")
+})
 
 
 // Sets the PORT for our app to have access to it. If no env has been set, we hard code it to 3000
